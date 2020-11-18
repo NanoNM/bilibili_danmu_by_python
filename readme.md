@@ -4,7 +4,7 @@
 邮箱 wfprivate@outlook.com
 
 
-## BDMCNano模块用法
+## BDMCNano模块用法 详细用法查看test5.py
 
 模块中对外开放的方法和变量有
 
