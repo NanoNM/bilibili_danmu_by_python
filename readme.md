@@ -18,31 +18,50 @@ websocket_wss方法用来启动模块内部的线程 请使用额外的线程启
 
     _thread.start_new_thread(BDMCNano.websocket_wss, (真实房间号, '线程id'))
 
-并使用下列类似方法获取返回值
+并使用下列类似方法获取返回值 下面文本基本与test5.py一致 具体请查看test5.py
+    
+    import _thread
+    import datetime
+    import json
+    import time
+    
+    import BDMCNano
+    
+    
+    _thread.start_new_thread(BDMCNano.websocket_wss, (3248451, '1'))
     
     while True:
-    for i in BDMCNano.AllData:
-        # print(i)
+        time.sleep(0.5)
+        for i in BDMCNano.AllData:
+            # print(i)
+            BDMCNano.AllData.remove(i)
+            if type(i) is list:
+                if i is not None:
+                    for lis in i:
+                        danmuInfoJson = json.loads(lis.decode('utf8'))
+                        # print(danmuInfoJson)
+                        time_now = datetime.datetime.now().strftime('%H点%M分%S秒%f毫秒')  # 当前时间
+                        if danmuInfoJson['cmd'] == "DANMU_MSG":  # 具体自己分析一下上面的json 礼物 上舰 超级留言 都在里面了
+                            print(time_now + ' : ' + danmuInfoJson['info'][2][1] + "说: " + danmuInfoJson['info'][1])
+                        if danmuInfoJson['cmd'] == "INTERACT_WORD":  # 具体自己分析一下上面的json 礼物 上舰 超级留言 都在里面了
+                            print(time_now + ' : ' + danmuInfoJson['data']['uname'] + "进入了直播间")
+    
+            else:
+                if i.find(b'ROOM_REAL_TIME_MESSAGE_UPDATE'):
+                    pass
+                    # 还没写
 
-        BDMCNano.AllData.remove(i)
-        if type(i) is list:
-            if i is not None:
-                for lis in i:
-                    danmuInfoJson = json.loads(lis.decode('utf8'))
-                    time_now = datetime.datetime.now().strftime('%H点%M分%S秒%f毫秒')  # 当前时间
-                    if danmuInfoJson['cmd'] == "DANMU_MSG":  # 具体自己分析一下上面的json 礼物 上舰 超级留言 都在里面了
-                        print(time_now + ' : ' + danmuInfoJson['info'][2][1] + "说: " + danmuInfoJson['info'][1])
-
-        else:
-            if i.find(b'ROOM_REAL_TIME_MESSAGE_UPDATE'):
-                # 还没写
-                pass
 
 
 
 注意由于没有设计垃圾清除 所有的数据都会存放在`AllData`中,请及时清理 类似上文
 
     BDMCNano.AllData.remove(i)
+    
+为了防止cpu占用过高在启动脚本中加入延迟阻塞来减缓cpu的占用
+
+     while True:
+        time.sleep(0.5)
 
 如果遇到问题和bug请联系我 或者帮助我!
 

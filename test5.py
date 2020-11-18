@@ -1,6 +1,7 @@
 import _thread
 import datetime
 import json
+import time
 
 import BDMCNano
 
@@ -8,9 +9,9 @@ import BDMCNano
 _thread.start_new_thread(BDMCNano.websocket_wss, (3248451, '1'))
 
 while True:
+    time.sleep(0.5)
     for i in BDMCNano.AllData:
         # print(i)
-
         BDMCNano.AllData.remove(i)
         if type(i) is list:
             if i is not None:
@@ -25,5 +26,5 @@ while True:
 
         else:
             if i.find(b'ROOM_REAL_TIME_MESSAGE_UPDATE'):
-                # 还没写
                 pass
+                # 还没写
