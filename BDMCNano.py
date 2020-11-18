@@ -156,4 +156,4 @@ def __getMessage(wss, threadName):
 
 
 if __name__ == '__main__':
-    websocket_wss(3248451)  # 真实房间号
+    websocket_wss(000000)  # 真实房间号
