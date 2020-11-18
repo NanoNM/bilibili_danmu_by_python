@@ -1,7 +1,6 @@
-import datetime
-
-import requests
 from websocket import create_connection, WebSocketTimeoutException, WebSocketConnectionClosedException
+from threading import RLock
+import requests
 import json
 import _thread
 import time
@@ -10,19 +9,26 @@ import re
 import random
 import hashlib
 
-Threads = []
+__Threads = []  # 全部存活线程id
+AllData = []  # 未解析的data数据
+__ThreadsStop = ''  # 线程关闭表示
+__lock = RLock()
+
+cmd = ''  # 调用者指令
 
 """
     上传用文件
     作者:ToolsMan_纳米
     文献参考: 
         https://github.com/lovelyyoshino/Bilibili-Live-API/blob/master/API.WebSocket.md
+
+    直接遍历 AllData 就行了
 """
 
 requests.packages.urllib3.disable_warnings()
 
 
-def encode(strs, op):
+def __encode(strs, op):
     """
     对发送的数据进行编码
     :param strs: json字符串
@@ -36,7 +42,7 @@ def encode(strs, op):
     return bytearray(header)
 
 
-def decode(blob):
+def __decode(blob):
     """
     对收到的数据进行解码
     :param blob: 字节码文件
@@ -55,7 +61,7 @@ def decode(blob):
             shortVar = var[16:]
             pos = hashlib.md5(str(random.random()).encode(encoding='UTF-8')).hexdigest()
             reg = re.compile(br'}\x00(?:[\s\S]{14})\x00{')
-            formatVar = reg.sub(b'}'+pos.encode()+b'{', shortVar)
+            formatVar = reg.sub(b'}' + pos.encode() + b'{', shortVar)
             formatVars = formatVar.split(pos.encode())
             return formatVars
         else:
@@ -68,11 +74,10 @@ def decode(blob):
         pass
 
     except Exception as e:
-        # 如果是心跳回应就会造成异常 不用可以不用管
-        print('Exception: ' + str(e) + '; 注意 也可能不是错误')
+        print('Exception: ' + str(e) + '; 注意 也可能不是错误')  # 如果是心跳回应就会造成异常 不用可以不用管
 
 
-def websocket_wss(roomId):
+def websocket_wss(roomId, id=''):
     html = requests.session().get(
         "https://api.live.bilibili.com/room/v1/Danmu/getConf?room_id=%s&platform=pc&player=web" % roomId, headers={
             'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:15.0) Gecko/20100101 Firefox/15.0.1'},
@@ -92,10 +97,10 @@ def websocket_wss(roomId):
             if wss.status == 101:
                 data = {'roomid': roomId,
                         'token': token}
-                databy = encode(json.dumps(data), 7)
+                databy = __encode(json.dumps(data), 7)
                 wss.send(databy)
                 recv_text = wss.recv()
-                joinBackJson = json.loads(decode(recv_text))
+                joinBackJson = json.loads(__decode(recv_text))
                 if joinBackJson['code'] != 0:
                     exit(-1)
                 print("connected")
@@ -103,49 +108,40 @@ def websocket_wss(roomId):
                 th2 = _thread.start_new_thread(__getMessage, (wss, "Thread-2"))
                 while 1:
                     time.sleep(0.2)  # 加个延迟防止线程多开
-                    if len(Threads) < 2:
+                    if len(__Threads) < 2:
                         print("reconnecting")
                         break
+
                     pass
         except BaseException as msg:
+            AllData.clear()
             print('Fail: ' + str(msg))
 
 
 def __sendBeat(wss, threadName):
     threadInfo = [threadName]
-    Threads.append(threadInfo)
+    __Threads.append(threadInfo)
     while True:
         try:
-            databy = encode('', 2)
+            databy = __encode('', 2)
             wss.send(databy)
-            time.sleep(5)
+            time.sleep(30)
         except ConnectionResetError:
-            Threads.clear()  # 如果发现连接断开
+            __Threads.clear()  # 如果发现连接断开
             break
         except WebSocketConnectionClosedException:
-            Threads.clear()  # 如果发现连接断开
+            __Threads.clear()  # 如果发现连接断开
             break
 
 
 def threadDecode(blob, threadName):
-    lists = decode(blob) # 此处返回的list可能一些公告 心跳回应信息 可以自己print一下看看
-    if type(lists) is list:
-        if lists is not None:
-            for lis in lists:
-                danmuInfoJson = json.loads(lis.decode('utf8'))
-                time_now = datetime.datetime.now().strftime('%H点%M分%S秒%f毫秒')  # 当前时间
-                if danmuInfoJson['cmd'] == "DANMU_MSG":  # 具体自己分析一下上面的json 礼物 上舰 超级留言 都在里面了
-                    print(time_now + ' : ' + danmuInfoJson['info'][2][1] + "说: " + danmuInfoJson['info'][1])
-
-    else:
-        if lists.find(b'ROOM_REAL_TIME_MESSAGE_UPDATE'):
-            # 还没写
-            pass
+    lists = __decode(blob)  # 此处返回的list可能一些公告 心跳回应信息 可以自己print一下看看
+    AllData.append(lists)
 
 
 def __getMessage(wss, threadName):
     threadInfo = [threadName]
-    Threads.append(threadInfo)
+    __Threads.append(threadInfo)
     while True:
         try:
             recv_date = wss.recv()
@@ -155,9 +151,8 @@ def __getMessage(wss, threadName):
         except BlockingIOError as e:
             print(e)
         except WebSocketConnectionClosedException:
-            Threads.clear()
+            __Threads.clear()
             break
 
-
-if __name__ == '__main__':
-    websocket_wss(47867)  # 真实房间号
+# if __name__ == '__main__':
+#     websocket_wss(00000)  # 真实房间号
