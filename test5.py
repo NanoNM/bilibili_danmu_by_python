@@ -6,7 +6,7 @@ import time
 import BDMCNano
 
 
-_thread.start_new_thread(BDMCNano.websocket_wss, (3248451, '1'))
+_thread.start_new_thread(BDMCNano.websocket_wss, (000000, '1'))
 
 while True:
     time.sleep(0.5)
