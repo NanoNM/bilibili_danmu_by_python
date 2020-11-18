@@ -4,7 +4,7 @@
 邮箱 wfprivate@outlook.com
 
 
-BDMCNano模块用法
+## BDMCNano模块用法
 
 模块中对外开放的方法和变量有
 
@@ -58,6 +58,7 @@ websocket_wss方法用来启动模块内部的线程 请使用额外的线程启
 |SUPER_CHAT_MESSAGE_JPN | 
 |SUPER_CHAT_MESSAGE |二个都是SC留言 |
 
+
 2.礼物类
 | 字段 | 说明 |
 | --- | --- |
@@ -79,10 +80,14 @@ websocket_wss方法用来启动模块内部的线程 请使用额外的线程启
 | GUARD_BUY   |上舰长
 | USER_TOAST_MSG | 续费了舰长
 | NOTICE_MSG | 在本房间续费了舰长
+
+
 5.分区排行类
 | 字段 | 说明 |
 | --- | --- |
 ACTIVITY_BANNER_UPDATE_V2 |小时榜变动
+
+
 6.关注数变化类
 | 字段 | 说明 |
 | --- | --- |
