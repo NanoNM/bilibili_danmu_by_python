@@ -46,5 +46,47 @@ websocket_wss方法用来启动模块内部的线程 请使用额外的线程启
 
 如果遇到问题和bug请联系我 或者帮助我!
 
+
+#### 消息类型
+1.弹幕类
+| 字段 | 说明 |
+| --- | --- |
+| DANMU_MSG | 弹幕消息 |
+| WELCOME_GUARD | 欢迎xxx老爷 |
+| ENTRY_EFFECT | 欢迎舰长进入房间 |
+| WELCOME |欢迎xxx进入房间 |
+|SUPER_CHAT_MESSAGE_JPN | 
+|SUPER_CHAT_MESSAGE |二个都是SC留言 |
+
+2.礼物类
+| 字段 | 说明 |
+| --- | --- |
+| SEND_GIFT | 投喂礼物 |
+| COMBO_SEND | 连击礼物 |
+
+
+3.天选之人类
+| 字段 | 说明 |
+| --- | --- |
+| ANCHOR_LOT_START | 天选之人开始完整信息 |
+| ANCHOR_LOT_END | 天选之人获奖id |
+| ANCHOR_LOT_AWARD| 天选之人获奖完整信息 |
+
+
+4.上船类
+| 字段 | 说明 |
+| --- | --- |
+| GUARD_BUY   |上舰长
+| USER_TOAST_MSG | 续费了舰长
+| NOTICE_MSG | 在本房间续费了舰长
+5.分区排行类
+| 字段 | 说明 |
+| --- | --- |
+ACTIVITY_BANNER_UPDATE_V2 |小时榜变动
+6.关注数变化类
+| 字段 | 说明 |
+| --- | --- |
+ROOM_REAL_TIME_MESSAGE_UPDATE |粉丝关注变动
+
 文献参考: 
         https://github.com/lovelyyoshino/Bilibili-Live-API/blob/master/API.WebSocket.md
