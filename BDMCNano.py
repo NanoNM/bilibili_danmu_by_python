@@ -11,10 +11,13 @@ import hashlib
 
 __Threads = []  # 全部存活线程id
 AllData = []  # 未解析的data数据
+AllMessage = []  # 可以自行调整所有的信息 包括启动 运行时 报错 全部appendstr就行
+AllError = []  # 未解析的Error数据
 __ThreadsStop = ''  # 线程关闭表示
 __lock = RLock()
 
-cmd = ''  # 调用者指令
+cmd = ''  # 调用者指令 只是暂时用来判断重连
+cmds = {}  # 调用者更多指令
 
 """
     上传用文件
@@ -74,10 +77,10 @@ def __decode(blob):
         pass
 
     except Exception as e:
-        print('Exception: ' + str(e) + '; 注意 也可能不是错误')  # 如果是心跳回应就会造成异常 不用可以不用管
+        raise Exception(e)
 
 
-def websocket_wss(roomId, id=''):
+def websocket_wss(roomId, threadName=''):
     html = requests.session().get(
         "https://api.live.bilibili.com/room/v1/Danmu/getConf?room_id=%s&platform=pc&player=web" % roomId, headers={
             'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:15.0) Gecko/20100101 Firefox/15.0.1'},
@@ -90,9 +93,9 @@ def websocket_wss(roomId, id=''):
     :param roomId: 真实房间号
     :return
     """
-    while True:
+    while cmd != 'disConnect':
         try:
-            print("connecting!")
+            AllMessage.append(threadName + ':连接中!')
             wss = create_connection('ws://broadcastlv.chat.bilibili.com:2244/sub', timeout=10)
             if wss.status == 101:
                 data = {'roomid': roomId,
@@ -103,19 +106,21 @@ def websocket_wss(roomId, id=''):
                 joinBackJson = json.loads(__decode(recv_text))
                 if joinBackJson['code'] != 0:
                     exit(-1)
-                print("connected")
-                th1 = _thread.start_new_thread(__sendBeat, (wss, "Thread-1"))
-                th2 = _thread.start_new_thread(__getMessage, (wss, "Thread-2"))
+                AllMessage.append(threadName + ':连接成功')
+                th1 = _thread.start_new_thread(__sendBeat, (wss, "[Thread-sendBeat]"))
+                th2 = _thread.start_new_thread(__getMessage, (wss, "[Thread-getMessage]"))
                 while 1:
+                    if cmd == 'disConnect':
+                        AllMessage.append(threadName + ':连接被手动断开')
+                        break
                     time.sleep(0.2)  # 加个延迟防止线程多开
                     if len(__Threads) < 2:
-                        print("reconnecting")
+                        AllMessage.append(threadName + ':重新连接中')
                         break
-
                     pass
         except BaseException as msg:
             AllData.clear()
-            print('Fail: ' + str(msg))
+            AllError.append(threadName + ':Fail: ' + str(msg))
 
 
 def __sendBeat(wss, threadName):
@@ -124,19 +129,28 @@ def __sendBeat(wss, threadName):
     while True:
         try:
             databy = __encode('', 2)
+            if cmd == 'disConnect':
+                break
             wss.send(databy)
             time.sleep(30)
         except ConnectionResetError:
+            AllError.append(threadName + ':Exception: ConnectionResetError 链接已断开')
             __Threads.clear()  # 如果发现连接断开
             break
         except WebSocketConnectionClosedException:
+            AllError.append(threadName + ':Exception: ConnectionResetError 链接已断开')
             __Threads.clear()  # 如果发现连接断开
             break
 
 
 def threadDecode(blob, threadName):
-    lists = __decode(blob)  # 此处返回的list可能一些公告 心跳回应信息 可以自己print一下看看
-    AllData.append(lists)
+    global lists
+    try:
+        lists = __decode(blob)  # 此处返回的list可能一些公告 心跳回应信息 可以自己print一下看看
+    except Exception as e:
+        AllError.append('Exception: ' + str(e))
+    if lists not in AllData:
+        AllData.append(lists)
 
 
 def __getMessage(wss, threadName):
@@ -144,16 +158,18 @@ def __getMessage(wss, threadName):
     __Threads.append(threadInfo)
     while True:
         try:
+            if cmd == 'disConnect':
+                break
             recv_date = wss.recv()
-            Decodes = _thread.start_new_thread(threadDecode, (recv_date, "Thread-Decodes"))  # 为了防止接受阻塞单独开启了一个线程用来分析数据
+            Decodes = _thread.start_new_thread(threadDecode, (recv_date, "[Thread-Decodes]"))  # 为了防止接受阻塞单独开启了一个线程用来分析数据
         except WebSocketTimeoutException as e:
-            print(e)
+            AllError.append(threadName + ':Exception: WebSocketTimeoutException ' + str(e))
         except BlockingIOError as e:
-            print(e)
+            AllError.append(threadName + ':Exception: BlockingIOError ' + str(e))
         except WebSocketConnectionClosedException:
             __Threads.clear()
             break
 
 
 if __name__ == '__main__':
-    websocket_wss(3248451)  # 真实房间号
+    websocket_wss(22055164)  # 真实房间号
